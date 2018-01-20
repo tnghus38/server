@@ -4,7 +4,6 @@
 #include "./../Network/Network.h"
 #include <iostream>
 #include <conio.h>
-#include <ctime>
 #include "Game.h"
 
 
@@ -12,11 +11,8 @@ enum class KeyCode {
 	PreesKey, PreesKey_tick
 };
 
-Game* game = new Game(0);
-Game* game1 = new Game(1);
-Game* game2 = new Game(2);
-Game* game3 = new Game(3);
-clock_t tick = clock();
+Game* game[4];
+
 void Recv_check(json j)
 {
 	KeyCode k = j["sendcode"].get<KeyCode>();
@@ -25,29 +21,32 @@ void Recv_check(json j)
 	{
 
 	case KeyCode::PreesKey:
-		game->PreesKey(j["KeyNumber"].get<int>());
+		game[0]->PreesKey(j["KeyNumber"].get<int>());
 		break;
 	case KeyCode::PreesKey_tick:
-		game->PreesKey(j["KeyNumber"].get<int>());
-		tick -= 1000;
+		game[0]->PreesKey(j["KeyNumber"].get<int>());
+		game[0]->tick -= 1000;
 		break;
 	default:
 		break;
 	}
 }
 void main() {
-	json j_buffer;
 	system("mode con:cols=156 lines=30");
+
+	json j_buffer;
 	Network net;
+	char buf[MAX_BUFFER];
+
+	for (int i = 0; i < 4; i++)
+	{
+		game[i] = new Game(i);
+		game[i]->DrawBackground();
+	}
 	net.SetCheckFunc(Recv_check);
 	net.StartClient(PF_INET, 8888, "127.0.0.1");
    
-	char buf[MAX_BUFFER];
-   
-    game->DrawBackground();
-	game1->DrawBackground();
-	game2->DrawBackground();
-	game3->DrawBackground();
+	
     while (true) {
         clock_t now = clock();
 
@@ -78,18 +77,20 @@ void main() {
             }
 			
         }
-		game->DrawBlock();
-		game->DrawBoard();
-		game1->DrawBlock();
-		game1->DrawBoard();
-		if (now - tick < game->time)
+
+		for (int i = 0; i < 4; i++)
 		{
+			game[i]->DrawBlock();
+			if (now - game[i]->tick < game[i]->time)
+			{
+			}
+			else
+			{
+				game[i]->Update();
+				game[i]->Update();
+				game[i]->tick = now;
+			}
 		}
-		else
-		{
-			game->Update();
-			game1->Update();
-			tick = now;
-		}
+		
     }
 }

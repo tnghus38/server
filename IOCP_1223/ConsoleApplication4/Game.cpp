@@ -41,6 +41,7 @@ void Game::InitbackGround() {
 }
 void Game::init(int n)
 {
+	tick = clock();
 	Rank = 1;
 	boardpos = n;
 	board.x = (boardpos * 40);
