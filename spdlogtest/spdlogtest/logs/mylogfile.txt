@@ -1,0 +1,36 @@
+[2018-01-20 14:48:27.644] [some_logger_name] [info] 0 * 0 equals          0
+[2018-01-20 14:48:27.644] [some_logger_name] [info] 1 * 1 equals          1
+[2018-01-20 14:48:27.644] [some_logger_name] [info] 2 * 2 equals          4
+[2018-01-20 14:48:27.644] [some_logger_name] [info] 3 * 3 equals          9
+[2018-01-20 14:48:27.644] [some_logger_name] [info] 4 * 4 equals         16
+[2018-01-20 14:48:27.644] [some_logger_name] [info] 5 * 5 equals         25
+[2018-01-20 14:48:27.644] [some_logger_name] [info] 6 * 6 equals         36
+[2018-01-20 14:48:27.644] [some_logger_name] [info] 7 * 7 equals         49
+[2018-01-20 14:48:27.644] [some_logger_name] [info] 8 * 8 equals         64
+[2018-01-20 14:48:27.644] [some_logger_name] [info] 9 * 9 equals         81
+*** [14:48:27 +09:00] [thread 6708] This is another message with custom format ***
+*** [14:48:27 +09:00] [thread 6708] End of example. ***
+[2018-01-20 14:49:17.577] [some_logger_name] [info] 0 * 0 equals          0
+[2018-01-20 14:49:17.577] [some_logger_name] [info] 1 * 1 equals          1
+[2018-01-20 14:49:17.577] [some_logger_name] [info] 2 * 2 equals          4
+[2018-01-20 14:49:17.577] [some_logger_name] [info] 3 * 3 equals          9
+[2018-01-20 14:49:17.577] [some_logger_name] [info] 4 * 4 equals         16
+[2018-01-20 14:49:17.578] [some_logger_name] [info] 5 * 5 equals         25
+[2018-01-20 14:49:17.578] [some_logger_name] [info] 6 * 6 equals         36
+[2018-01-20 14:49:17.578] [some_logger_name] [info] 7 * 7 equals         49
+[2018-01-20 14:49:17.578] [some_logger_name] [info] 8 * 8 equals         64
+[2018-01-20 14:49:17.578] [some_logger_name] [info] 9 * 9 equals         81
+*** [14:49:17 +09:00] [thread 6164] This is another message with custom format ***
+*** [14:49:17 +09:00] [thread 6164] End of example. ***
+[2018-01-20 14:50:10.497] [some_logger_name] [info] 0 * 0 equals          0
+[2018-01-20 14:50:10.497] [some_logger_name] [info] 1 * 1 equals          1
+[2018-01-20 14:50:10.497] [some_logger_name] [info] 2 * 2 equals          4
+[2018-01-20 14:50:10.497] [some_logger_name] [info] 3 * 3 equals          9
+[2018-01-20 14:50:10.497] [some_logger_name] [info] 4 * 4 equals         16
+[2018-01-20 14:50:10.497] [some_logger_name] [info] 5 * 5 equals         25
+[2018-01-20 14:50:10.497] [some_logger_name] [info] 6 * 6 equals         36
+[2018-01-20 14:50:10.497] [some_logger_name] [info] 7 * 7 equals         49
+[2018-01-20 14:50:10.497] [some_logger_name] [info] 8 * 8 equals         64
+[2018-01-20 14:50:10.497] [some_logger_name] [info] 9 * 9 equals         81
+*** [14:50:10 +09:00] ¾È´¨[thread 524] This is another message with custom format ***
+*** [14:50:10 +09:00] ¾È´¨[thread 524] End of example. ***

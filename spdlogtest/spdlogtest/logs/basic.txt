@@ -1,0 +1,6 @@
+[2018-01-20 14:48:27.643] [basic_logger] [info] Some log message
+*** [14:48:27 +09:00] [thread 6708] End of example. ***
+[2018-01-20 14:49:17.577] [basic_logger] [info] Some log message
+*** [14:49:17 +09:00] [thread 6164] End of example. ***
+[2018-01-20 14:50:10.497] [basic_logger] [info] Some log message
+*** [14:50:10 +09:00] ¾È´¨[thread 524] End of example. ***
