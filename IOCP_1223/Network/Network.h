@@ -4,6 +4,7 @@
 #include "Room.h"
 #include <map>
 #include <list>
+#include<iostream>
 #include "json.hpp"
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -11,6 +12,11 @@ using namespace std;
 
 using json = nlohmann::json;
 //PostQueuedCompletionStatus
+
+enum class MsgCode {
+
+	PreesKey, PreesKey_tick,Playerindex
+};
 
 class Network {
   private:

@@ -8,12 +8,10 @@
 #include "Game.h"
 
 
-enum class MsgCode {
 
-	PreesKey, PreesKey_tick
-};
-Game* game;
+Game* game[4];
 clock_t tick;
+int myIndex = 0;
 void Recv_check(json j)
 {
 	MsgCode MC = j["sendcode"].get<MsgCode>();
@@ -21,12 +19,17 @@ void Recv_check(json j)
 	switch (MC)
 	{
 	case MsgCode::PreesKey:
-		 game->PreesKey(j["KeyNumber"].get<int>());
+		 game[myIndex]->PreesKey(j["KeyNumber"].get<int>());
 		break;
 	case MsgCode::PreesKey_tick:
 
-		game->PreesKey(j["KeyNumber"].get<int>());
+		game[myIndex]->PreesKey(j["KeyNumber"].get<int>());
 		tick -= 1000;
+		break;
+	case MsgCode::Playerindex:
+
+		myIndex=j["Pindex"].get<int>();
+		printf("%d", &myIndex);
 		break;
 	default:
 		break;
@@ -40,14 +43,11 @@ void main() {
 	net.StartClient(PF_INET, 8888, "127.0.0.1");
     tick = clock();
 	char buf[MAX_BUFFER];
-	game = new Game(0);
-	Game* game1= new Game(1);
-	Game* game2 = new Game(2);
-	Game* game3 = new Game(3);
-    game->DrawBackground();
-	game1->DrawBackground();
-	game2->DrawBackground();
-	game3->DrawBackground();
+	for (int i = 0; i < 4; i++)
+	{
+		game[i] = new Game(i);
+		game[i]->DrawBackground();
+	}
     while (true) {
         clock_t now = clock();
 
@@ -78,14 +78,20 @@ void main() {
             }
 			
         }
-		game->DrawBlock();
-		game->DrawBoard();
-		game1->DrawBlock();
-		game1->DrawBoard();
-		if (now - tick < game->time)
-            continue;
-		game->Update();
-		game1->Update();
-        tick = now;
+		for (int i = 0; i < 4; i++)
+		{
+
+			game[i]->DrawBlock();
+			game[i]->DrawBoard();
+
+
+			if (now - tick < game[i]->time)
+			{
+			}
+			else {
+				game[i]->Update();
+				tick = now;
+			}
+		}
     }
 }

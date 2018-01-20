@@ -36,7 +36,19 @@ class Room {
 
         return --count;
     }
+	inline int PlayerIndexCheck() {
+		int n=0;
+		for (auto& i : Clients) {
+			if (i == nullptr)
+			{
+				return n;
+			}
+			if (i->ID == n)
+				n++;
+		}
 
+		return n;
+	}
   private:
     /// <summary> 클라이언트 카운트 </summary>
   

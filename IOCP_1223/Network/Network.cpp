@@ -84,7 +84,7 @@ void Network::Connect() {
         CloseNet();
         throw "Error - Fail to connect\n";
     } else {
-        printf("Server Connected\n* Enter Message\n->");
+        //printf("Server Connected\n* Enter Message\n->");
     }
 }
 
@@ -179,20 +179,32 @@ void Network::Accept() {
 			{
 				roomcount = i->AddClinet(tCleint);
 				
-				if ( 4 >= roomcount) {
+				if ( 5 > roomcount) {
 					//성공 
 					i->id = roomid;
 					tCleint->roomID = i->id;
-					printf("\n %d번방  인원: %d\n", i->id,i->count);
+					printf("\n %d번방  인원?: %d\n", i->id,i->count);
+					
+					json j_buffer;
+					j_buffer["sendcode"] = MsgCode::Playerindex;
+					j_buffer["Pindex"] = i->PlayerIndexCheck();
+
+					strcpy_s(myThis->messageBuffer, j_buffer.dump().c_str());
+					printf("%s", myThis->messageBuffer);
+					myThis->Send(myThis->messageBuffer, strlen(myThis->messageBuffer));
+					printf("%s", myThis->messageBuffer);
+				
 					break;
 				}
 				else
 				{//방인원 초과로 실패하더라도 AddClinet 때문에 카운트가 올라가서 다시 카운트 잡아줌 
 					i->count = 4;
+
+					printf("\n %d번방  인원!?: %d\n", i->id, i->count);
 				}
 				roomid++;
 
-				printf("\n %d번방  인원: %d\n", i->id, i->count);
+				//printf("\n %d번방  인원: %d\n", i->id, i->count);
 			}
 			//  룸에 접속 실패거나  처음 생성할때 
 			if (roomcount == 0 || roomcount > 4)
@@ -206,7 +218,14 @@ void Network::Accept() {
 				room->id = roomid;
 				tCleint->roomID = room->id;
 				printf("\n %d번방  인원: %d\n", room->id, room->count);
+				json j_buffer;
+				j_buffer["sendcode"] = MsgCode::Playerindex;
+				j_buffer["Pindex"] = room->PlayerIndexCheck();
 
+				//strcpy_s(myThis->messageBuffer, j_buffer.dump().c_str());
+				//printf("%s", myThis->messageBuffer);
+				//myThis->Send(myThis->messageBuffer, strlen(myThis->messageBuffer));
+				//printf("%s", myThis->messageBuffer);
 				//룸을 리스트에 추가 
 				myThis->rooms.push_back(room);
 
