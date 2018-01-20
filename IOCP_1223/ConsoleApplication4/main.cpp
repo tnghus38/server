@@ -4,49 +4,50 @@
 #include "./../Network/Network.h"
 #include <iostream>
 #include <conio.h>
+#include <ctime>
 #include "Game.h"
 
 
-enum class KeyCode {
+enum class MsgCode {
+
 	PreesKey, PreesKey_tick
 };
-
-Game* game[4];
-
+Game* game;
+clock_t tick;
 void Recv_check(json j)
 {
-	KeyCode k = j["sendcode"].get<KeyCode>();
+	MsgCode MC = j["sendcode"].get<MsgCode>();
 
-	switch (k)
+	switch (MC)
 	{
-
-	case KeyCode::PreesKey:
-		game[0]->PreesKey(j["KeyNumber"].get<int>());
+	case MsgCode::PreesKey:
+		 game->PreesKey(j["KeyNumber"].get<int>());
 		break;
-	case KeyCode::PreesKey_tick:
-		game[0]->PreesKey(j["KeyNumber"].get<int>());
-		game[0]->tick -= 1000;
+	case MsgCode::PreesKey_tick:
+
+		game->PreesKey(j["KeyNumber"].get<int>());
+		tick -= 1000;
 		break;
 	default:
 		break;
 	}
 }
 void main() {
-	system("mode con:cols=156 lines=30");
-
 	json j_buffer;
+	system("mode con:cols=156 lines=30");
 	Network net;
-	char buf[MAX_BUFFER];
-
-	for (int i = 0; i < 4; i++)
-	{
-		game[i] = new Game(i);
-		game[i]->DrawBackground();
-	}
 	net.SetCheckFunc(Recv_check);
 	net.StartClient(PF_INET, 8888, "127.0.0.1");
-   
-	
+    tick = clock();
+	char buf[MAX_BUFFER];
+	game = new Game(0);
+	Game* game1= new Game(1);
+	Game* game2 = new Game(2);
+	Game* game3 = new Game(3);
+    game->DrawBackground();
+	game1->DrawBackground();
+	game2->DrawBackground();
+	game3->DrawBackground();
     while (true) {
         clock_t now = clock();
 
@@ -57,7 +58,7 @@ void main() {
             if (nInput == 0xE0 || nInput == 0) {
                 nInput = _getch();
 				//받음
-				j_buffer["sendcode"] = KeyCode::PreesKey;
+				j_buffer["sendcode"] = MsgCode::PreesKey;
 				j_buffer["KeyNumber"] = nInput;
 				
 				strcpy_s(buf, j_buffer.dump().c_str());
@@ -67,7 +68,7 @@ void main() {
 			else if (nInput == 32 || nInput == 48) {
 				//받음
 
-				j_buffer["sendcode"] = KeyCode::PreesKey_tick;
+				j_buffer["sendcode"] = MsgCode::PreesKey_tick;
 				j_buffer["KeyNumber"] = nInput;
 
 				strcpy_s(buf, j_buffer.dump().c_str());
@@ -77,20 +78,14 @@ void main() {
             }
 			
         }
-
-		for (int i = 0; i < 4; i++)
-		{
-			game[i]->DrawBlock();
-			if (now - game[i]->tick < game[i]->time)
-			{
-			}
-			else
-			{
-				game[i]->Update();
-				game[i]->Update();
-				game[i]->tick = now;
-			}
-		}
-		
+		game->DrawBlock();
+		game->DrawBoard();
+		game1->DrawBlock();
+		game1->DrawBoard();
+		if (now - tick < game->time)
+            continue;
+		game->Update();
+		game1->Update();
+        tick = now;
     }
 }

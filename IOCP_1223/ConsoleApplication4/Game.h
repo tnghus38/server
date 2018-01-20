@@ -2,7 +2,6 @@
 
 #include <random>
 #include <chrono>
-#include <ctime>
 #include "Board.h"
 #include "Block.h"
 #include "DrawString.h"
@@ -69,8 +68,7 @@ class Game {
 	//·£´ý°ª °¡Á®¿È 
     int GetRandom();
   public:
-	int time;
-	int tick;
+	  int time;
     Game();
 	Game(int n);
     ~Game();

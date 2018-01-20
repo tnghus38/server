@@ -84,7 +84,7 @@ void Network::Connect() {
         CloseNet();
         throw "Error - Fail to connect\n";
     } else {
-        //printf("Server Connected\n* Enter Message\n->");
+        printf("Server Connected\n* Enter Message\n->");
     }
 }
 
