@@ -5,17 +5,15 @@
 #include <map>
 #include <list>
 #include<iostream>
-#include "json.hpp"
 #pragma comment(lib, "Ws2_32.lib")
 
 using namespace std;
 
-using json = nlohmann::json;
 //PostQueuedCompletionStatus
 
 enum class MsgCode {
 
-	PreesKey, PreesKey_tick,Playerindex
+	PreesKey, PreesKey_tick, fail
 };
 
 class Network {
@@ -56,11 +54,11 @@ class Network {
     /// <summary> 전역버퍼의 사용된 사이즈 </summary>
     int sizeBuffer = 0;
 
-	//받기만 하는놈 안에 들어가는 함수 
+	/// <summary>받기만 하는 함수 안에 작동되는함수</summary>
 	std::function< void(json s)> funcCheck;
-	//받기기본 
+	/// <summary>받기만 하는 함수 안에 작동되는함수 기본</summary>
 	void msgcheck(json s);
-	//받기만하자
+	/// <summary>받기만 하는 함수</summary>
 	void Recvstart();
 	
     void SetServerAddr(int _family, int _port, char _ip[]);

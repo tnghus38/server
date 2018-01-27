@@ -11,31 +11,32 @@
 
 Game* game[4];
 clock_t tick;
-int myIndex = 0;
+int myIndex;
 void Recv_check(json j)
 {
 	MsgCode MC = j["sendcode"].get<MsgCode>();
+	if(myIndex==5)
+		myIndex = j["Pindex"].get<int>();
 
 	switch (MC)
 	{
 	case MsgCode::PreesKey:
-		 game[myIndex]->PreesKey(j["KeyNumber"].get<int>());
+		if(j["InputPlayer"].get<int>()!=5)
+		 game[j["InputPlayer"].get<int>()]->PreesKey(j["KeyNumber"].get<int>());
+
 		break;
 	case MsgCode::PreesKey_tick:
-
-		game[myIndex]->PreesKey(j["KeyNumber"].get<int>());
+		if (j["InputPlayer"].get<int>() != 5)
+			game[j["InputPlayer"].get<int>()]->PreesKey(j["KeyNumber"].get<int>());
 		tick -= 1000;
 		break;
-	case MsgCode::Playerindex:
 
-		myIndex=j["Pindex"].get<int>();
-		printf("%d", &myIndex);
-		break;
 	default:
 		break;
 	}
 }
 void main() {
+	myIndex = 5;
 	json j_buffer;
 	system("mode con:cols=156 lines=30");
 	Network net;
@@ -60,7 +61,8 @@ void main() {
 				//받음
 				j_buffer["sendcode"] = MsgCode::PreesKey;
 				j_buffer["KeyNumber"] = nInput;
-				
+				j_buffer["Pindex"] = myIndex;
+				j_buffer["InputPlayer"] = myIndex;
 				strcpy_s(buf, j_buffer.dump().c_str());
 				net.Send(buf, strlen(buf));
 				//game->PreesKey(nInput);
@@ -70,7 +72,8 @@ void main() {
 
 				j_buffer["sendcode"] = MsgCode::PreesKey_tick;
 				j_buffer["KeyNumber"] = nInput;
-
+				j_buffer["Pindex"] = myIndex;
+				j_buffer["InputPlayer"] = myIndex;
 				strcpy_s(buf, j_buffer.dump().c_str());
 				net.Send(buf, strlen(buf));
 				//game->PreesKey(nInput);

@@ -3,9 +3,11 @@
 #include "Client.h"
 #include <vector>
 #include <array>
+#include "json.hpp"
 
 using namespace std;
 
+using json = nlohmann::json;
 class Room {
   public:
     /// <summary> 룸 아이디 </summary>
@@ -39,7 +41,7 @@ class Room {
 	inline int PlayerIndexCheck() {
 		int n=0;
 		for (auto& i : Clients) {
-			if (i == nullptr)
+			if (i == nullptr&&n==0)
 			{
 				return n;
 			}
@@ -58,15 +60,29 @@ class Room {
 
     /// <summary> 읽기 처리용 </summary>
     inline void Recv(SOCKETINFO* socketinfoRecv) {
-        Send(socketinfoRecv->dataBuffer);
+		
+		WSABUF s = socketinfoRecv->dataBuffer;
+        Send(s);
+		
+
     }
 
     /// <summary> 쓰기 처리용 </summary>
     inline void Send(WSABUF& sendbuffer) {
+		int n = 0;
         for (auto& i : Clients) {
             if (i != nullptr) {
+				char ms[MAX_BUFFER];
+
+				printf("\n %s여긴교 \n", sendbuffer.buf);
+				json s = json::parse(sendbuffer.buf);
+				s["Pindex"] = n;
+				strcpy_s(ms, s.dump().c_str());
+				sendbuffer.buf = ms;
+				printf("\n %s파싱 \n", sendbuffer.buf);
                 i->Send(sendbuffer);
             }
+			n++;
         }
     }
 };

@@ -2,3 +2,8 @@ IOCP_1223/ㅇㅁㅇ.txt
 IOCP_1223/.vs/tcp/v15/Browse.VC.db
 IOCP_1223/.vs/tcp/v15/ipch/AutoPCH/29e0c2212c16a84/CLIENT.ipch
 *.ipch
+IOCP_1223/Client/x64/
+IOCP_1223/ConsoleApplication4/x64/
+IOCP_1223/Network/x64/
+IOCP_1223/Server/x64/
+IOCP_1223/Test/x64/
