@@ -8,7 +8,9 @@
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = TEXT("LJH");
+float GetElapsedTimeInSeconds();//시간 
 
+bool hasFocus;
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR    lpCmdLine,
@@ -63,9 +65,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				DispatchMessage(&msg);
 			}
 		}
-		else //메시지가 있을때 호출 
+		if (msg.message == WM_QUIT)
+			break;
+
+		if (hasFocus)
 		{
-			D3DFramework::Instance()->Render();
+			D3DFramework::Instance()->updateFrame(GetElapsedTimeInSeconds());
+
+			if (D3DFramework::Instance()->isDevicevalid())
+				D3DFramework::Instance()->Render();
+		}
+		else
+		{
+			WaitMessage();
 		}
 	}
 	return TRUE;
@@ -82,10 +94,79 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			EndPaint(hWnd, &ps);
 			break;
 	}
+	case WM_ACTIVATE:
+		switch (wParam)
+		{
+		default:
+			break;
+
+		case WA_ACTIVE:
+		case WA_CLICKACTIVE:
+			hasFocus = true;
+			break;
+
+		case WA_INACTIVE:
+				ShowWindow(hWnd, SW_MINIMIZE);
+			hasFocus = false;
+			break;
+		}
+		break;
+
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
 
 	}
 	return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+float GetElapsedTimeInSeconds()
+{
+	// Returns the elapsed time (in seconds) since the last time this function
+	// was called. This elaborate setup is to guard against large spikes in
+	// the time returned by QueryPerformanceCounter().
+
+	static const int MAX_SAMPLE_COUNT = 50;
+
+	static float frameTimes[MAX_SAMPLE_COUNT];
+	static float timeScale = 0.0f;
+	static float actualElapsedTimeSec = 0.0f;
+	static INT64 freq = 0;
+	static INT64 lastTime = 0;
+	static int sampleCount = 0;
+	static bool initialized = false;
+
+	INT64 time = 0;
+	float elapsedTimeSec = 0.0f;
+
+	if (!initialized)
+	{
+		initialized = true;
+		QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&freq));
+		QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&lastTime));
+		timeScale = 1.0f / freq;
+	}
+
+	QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&time));
+	elapsedTimeSec = (time - lastTime) * timeScale;
+	lastTime = time;
+
+	if (fabsf(elapsedTimeSec - actualElapsedTimeSec) < 1.0f)
+	{
+		memmove(&frameTimes[1], frameTimes, sizeof(frameTimes) - sizeof(frameTimes[0]));
+		frameTimes[0] = elapsedTimeSec;
+
+		if (sampleCount < MAX_SAMPLE_COUNT)
+			++sampleCount;
+	}
+
+	actualElapsedTimeSec = 0.0f;
+
+	for (int i = 0; i < sampleCount; ++i)
+		actualElapsedTimeSec += frameTimes[i];
+
+	if (sampleCount > 0)
+		actualElapsedTimeSec /= sampleCount;
+
+	return actualElapsedTimeSec;
 }
