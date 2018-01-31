@@ -98,7 +98,7 @@ HRESULT D3DFramework::Render()
 		return E_FAIL;
 
 	d3dDevice9->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 255, 0), 1.0f, 0);
-	//»ö         ±íÀÌ0~1   
+	//                             Å¸°Ù  | z¹öÆÛµµ Å¬¸®¾î                        »ö         ±íÀÌ0~1   
 
 	// Render ½ÃÀÛ
 	if (SUCCEEDED(d3dDevice9->BeginScene()))
