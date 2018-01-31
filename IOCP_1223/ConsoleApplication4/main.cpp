@@ -27,8 +27,10 @@ void Recv_check(json j)
 		break;
 	case MsgCode::PreesKey_tick:
 		if (j["InputPlayer"].get<int>() != 5)
+		{
 			game[j["InputPlayer"].get<int>()]->PreesKey(j["KeyNumber"].get<int>());
-		tick -= 1000;
+			game[j["InputPlayer"].get<int>()]->Update();
+		}
 		break;
 
 	default:
@@ -92,8 +94,11 @@ void main() {
 			{
 			}
 			else {
-				game[i]->Update();
 				tick = now;
+				for (int j = 0; j < 4; j++)
+				{
+					game[j]->Update();
+				}
 			}
 		}
     }
