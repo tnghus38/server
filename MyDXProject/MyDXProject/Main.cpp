@@ -1,78 +1,78 @@
-﻿#include<Windows.h>
-#include<d3d9.h>
-#include<d3dx9.h>
+#include <windows.h>
 #include "D3DFramework.h"
 
-#define MAX_LOADSTRING 100
-
-LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 HINSTANCE g_hInst;
-LPCTSTR lpszClass = TEXT("LJH");
-float GetElapsedTimeInSeconds();//시간 
+LPCTSTR lpszClass = TEXT("MyDXProject");
 
+int windowWidth;
+int windowHeight;
 bool hasFocus;
-int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
-	_In_opt_ HINSTANCE hPrevInstance,
-	_In_ LPWSTR    lpCmdLine,
-	_In_ int       nCmdShow)
+bool isFullScreen;
+
+float GetElapsedTimeInSeconds();
+
+int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
+	LPSTR lpszCmdParam, int nCmdShow )
+
 {
-	HWND hWnd;
-	WNDCLASS WndClass;
-	MSG msg;
+	HWND		hWnd;
+	MSG			msg;
+	WNDCLASS	WndClass;
 
 	ZeroMemory(&WndClass, sizeof(WNDCLASS));
 
+	g_hInst	= hInstance;
 	WndClass.cbClsExtra = 0;
-	WndClass.style = CS_HREDRAW | CS_VREDRAW;
+	WndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+	WndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+	WndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 	WndClass.hInstance = hInstance;
 	WndClass.lpfnWndProc = WndProc;
-
-	WndClass.cbWndExtra = 0;
-	WndClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	WndClass.hIcon = LoadIcon(NULL,IDI_APPLICATION);
-	WndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	WndClass.lpszMenuName = NULL;
 	WndClass.lpszClassName = lpszClass;
+	WndClass.lpszMenuName = NULL;
+	WndClass.style = CS_HREDRAW | CS_VREDRAW;
 
 	RegisterClass(&WndClass);
 
 	DWORD wndExStyle = WS_EX_OVERLAPPEDWINDOW;
-	DWORD wndStyle= WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPCHILDREN | WS_CLIPCHILDREN;
-	hWnd = CreateWindowEx(wndExStyle, WndClass.lpszClassName, lpszClass, wndStyle, CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, NULL, NULL, hInstance, NULL);
-	if (!hWnd)
+	DWORD wndStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU |
+		WS_MINIMIZEBOX | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+
+	hWnd = CreateWindowEx(wndExStyle, WndClass.lpszClassName, lpszClass,
+		wndStyle, CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, NULL, NULL, hInstance, NULL);
+
+	if (hWnd == NULL) {
+		MessageBox(NULL, TEXT("can't create window"), TEXT("error"), MB_ICONERROR | MB_OK);
+		return -1;
+	}
+
+	if (FAILED(D3DFramework::Instance()->Init(hWnd, lpszClass)))
 	{
-		return FALSE;
+		return -1;
 	}
 
 	ShowWindow(hWnd, nCmdShow);
-	UpdateWindow(hWnd);
-	D3DFramework::Instance()->Init(hWnd);
-	HACCEL hAccelTable = LoadAccelerators(hInstance, WndClass.lpszClassName);
 
 	while (true)
 	{
-		//메시지가없을때호출  //겟메시지는 메식지가 없을때를 처리못함  
-		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE) == false)
+		while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 		{
 			if (msg.message == WM_QUIT)
 				break;
 
-			/*TranslateAccelerator: 입력한 키가 액셀러레이터에 등록되어 있는 경우 WM_KEYDOWN 또는 WM_SYSKEYDOWN
-			                        메세지를 WM_COMMAND 또는 WM_SYSCOMMAND 메세지로 변환한다.*/
-			if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-			{
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
 		}
+
 		if (msg.message == WM_QUIT)
 			break;
 
 		if (hasFocus)
 		{
-			D3DFramework::Instance()->updateFrame(GetElapsedTimeInSeconds());
+			D3DFramework::Instance()->UpdateFrame(GetElapsedTimeInSeconds());
 
-			if (D3DFramework::Instance()->isDevicevalid())
+			if (D3DFramework::Instance()->isDeviceValid())
 				D3DFramework::Instance()->Render();
 		}
 		else
@@ -80,20 +80,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			WaitMessage();
 		}
 	}
-	return TRUE;
+
+	return (int)msg.wParam;
 }
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 {
-	switch (message)
+	switch (iMessage)
 	{
-	case WM_PAINT:
-	{
-			PAINTSTRUCT ps;
-			HDC hdc = BeginPaint(hWnd, &ps);
-			// TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다.
-			EndPaint(hWnd, &ps);
-			break;
-	}
 	case WM_ACTIVATE:
 		switch (wParam)
 		{
@@ -106,6 +100,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 
 		case WA_INACTIVE:
+			if (isFullScreen)
 				ShowWindow(hWnd, SW_MINIMIZE);
 			hasFocus = false;
 			break;
@@ -114,10 +109,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_DESTROY:
 		PostQuitMessage(0);
+		return 0;
+
+	case WM_SIZE:
+		windowWidth = static_cast<int>(LOWORD(lParam));
+		windowHeight = static_cast<int>(HIWORD(lParam));
 		break;
 
+	default:
+		break;
 	}
-	return DefWindowProc(hWnd, message, wParam, lParam);
+
+	return (DefWindowProc(hWnd, iMessage, wParam, lParam));
 }
 
 float GetElapsedTimeInSeconds()

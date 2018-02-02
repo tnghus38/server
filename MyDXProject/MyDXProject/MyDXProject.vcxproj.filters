@@ -15,19 +15,25 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Main.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
     <ClCompile Include="D3DFramework.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="camera.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="input.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="D3DRenderObject.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="BoxObject.cpp">
+    <ClCompile Include="Transform.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="camera.cpp">
+    <ClCompile Include="D3DPrimitive.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
@@ -35,13 +41,19 @@
     <ClInclude Include="D3DFramework.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="camera.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
     <ClInclude Include="D3DRenderObject.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="BoxObject.h">
+    <ClInclude Include="input.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="camera.h">
+    <ClInclude Include="Transform.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="D3DPrimitive.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
