@@ -243,6 +243,19 @@ void Game::CurrentBlockCheck() {
     }
 }
 
+void Game::StartGame()
+{
+	if(clientState== PlayerState::Ready)
+		clientState = PlayerState::Play;
+}
+
+void Game::ReadyGame()
+{
+
+	if (clientState == PlayerState::UnReady)
+		clientState = PlayerState::Ready;
+}
+
 void Game::Update() {
     CurrentBlockCheck();
 
@@ -405,19 +418,7 @@ void Game::PreesKey(int key) {
 	}else if (key == (int)eKey::TAP)
 	{
 	
-		switch (clientState)
-		{
-		case PlayerState::End:
-			clientState = PlayerState::UnReady;
-			//board.ResetGame();
-			break;
-		case PlayerState::UnReady:
-			clientState = PlayerState::Ready;
-			break;
-		case PlayerState::Ready:
-			clientState = PlayerState::Play;
-			break;
-		case PlayerState::Play:
+		if(clientState== PlayerState::Play)
 			NextMino->x = CurrentMino->x;
 			NextMino->y = CurrentMino->y;
 			if (board.CheckMino(*NextMino)) {
@@ -429,8 +430,7 @@ void Game::PreesKey(int key) {
 				CurrentMino = NextMino;
 				CreateNextMino(minonum);
 			}
-			break;
-		}
+		
 		
 		return;
 	}

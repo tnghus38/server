@@ -18,7 +18,6 @@ enum class eIOType {
     IO_SEND,
     IO_RECV
 };
-
 struct SOCKETINFO {
     /// <summary> IOCP에서 사용되는 overlapped정보구조체 </summary>
     WSAOVERLAPPED overlapped;
@@ -50,7 +49,6 @@ class Client : public std::enable_shared_from_this<Client> {
     int ID;
 	int roomID = 0;
     string name;
-
     inline Client(SOCKET socket) {
         this->socket = socket;
 

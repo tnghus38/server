@@ -11,10 +11,7 @@ using namespace std;
 
 //PostQueuedCompletionStatus
 
-enum class MsgCode {
 
-	PreesKey, PreesKey_tick, fail
-};
 
 class Network {
   private:

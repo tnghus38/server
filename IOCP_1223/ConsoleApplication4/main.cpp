@@ -12,12 +12,12 @@
 Game* game[4];
 clock_t tick;
 int myIndex;
+int p_stat;
 void Recv_check(json j)
 {
 	MsgCode MC = j["sendcode"].get<MsgCode>();
 	if(myIndex==5)
 		myIndex = j["Pindex"].get<int>();
-
 	switch (MC)
 	{
 	case MsgCode::PreesKey:
@@ -32,13 +32,24 @@ void Recv_check(json j)
 			game[j["InputPlayer"].get<int>()]->Update();
 		}
 		break;
-
+	case MsgCode::PreesKey_Ready:
+		if (j["InputPlayer"].get<int>() != 5)
+		{
+			game[j["InputPlayer"].get<int>()]->ReadyGame();
+			p_stat = 1;
+		}
+		break;
+	case MsgCode::PreesKey_Start:
+		for(int i=0;i<4;i++)
+			game[i]->StartGame();
+		break;
 	default:
 		break;
 	}
 }
 void main() {
 	myIndex = 5;
+	p_stat = 0;
 	json j_buffer;
 	system("mode con:cols=156 lines=30");
 	Network net;
@@ -72,7 +83,11 @@ void main() {
 			else if (nInput == 32 || nInput == 48) {
 				//받음
 
-				j_buffer["sendcode"] = MsgCode::PreesKey_tick;
+				if (p_stat ==0)
+					j_buffer["sendcode"] = MsgCode::PreesKey_Ready;
+				else 
+					j_buffer["sendcode"] = MsgCode::PreesKey_tick;
+				
 				j_buffer["KeyNumber"] = nInput;
 				j_buffer["Pindex"] = myIndex;
 				j_buffer["InputPlayer"] = myIndex;

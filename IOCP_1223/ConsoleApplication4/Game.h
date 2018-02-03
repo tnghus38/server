@@ -48,7 +48,6 @@ class Game {
 	//랜덤 숫자 
     std::mt19937_64 ranNum;
 
-  private:
 	  //처음 블록생성 
     void Setup();
 	 //처음 백보드 생성 
@@ -77,6 +76,8 @@ class Game {
 	//현재 블록이 없으면다음 블록을 넣어주고 다음 블록 생성 
     void CurrentBlockCheck();
 
+	void StartGame();
+	void ReadyGame();
 	//실시간으로 떨어지게함 
     void Update();
 	

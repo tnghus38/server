@@ -4,7 +4,10 @@
 #include <vector>
 #include <array>
 #include "json.hpp"
+enum class MsgCode {
 
+	PreesKey, PreesKey_tick, PreesKey_Ready, PreesKey_Start
+};
 using namespace std;
 
 using json = nlohmann::json;
@@ -61,8 +64,10 @@ class Room {
     /// <summary> 읽기 처리용 </summary>
     inline void Recv(SOCKETINFO* socketinfoRecv) {
 		
-		WSABUF s = socketinfoRecv->dataBuffer;
-        Send(s);
+		WSABUF _buf = socketinfoRecv->dataBuffer;
+
+	
+        Send(_buf);
 		
 
     }
@@ -70,19 +75,29 @@ class Room {
     /// <summary> 쓰기 처리용 </summary>
     inline void Send(WSABUF& sendbuffer) {
 		int n = 0;
+		int ready_count=0;
+		char ms[MAX_BUFFER];
+		json s = json::parse(sendbuffer.buf);
         for (auto& i : Clients) {
             if (i != nullptr) {
-				char ms[MAX_BUFFER];
+				
+				
+				s["Pindex"] = n++;
+				if (s["sendcode"] == MsgCode::PreesKey_Ready)
 
-				printf("\n %s여긴교 \n", sendbuffer.buf);
-				json s = json::parse(sendbuffer.buf);
-				s["Pindex"] = n;
+				{
+					ready_count++;
+
+					if (ready_count == n)//입장수와 레디한사람수가같으면
+					{
+						s["sendcode"] = MsgCode::PreesKey_Start;
+					}
+				}
+
 				strcpy_s(ms, s.dump().c_str());
 				sendbuffer.buf = ms;
-				printf("\n %s파싱 \n", sendbuffer.buf);
-                i->Send(sendbuffer);
+				i->Send(sendbuffer);
             }
-			n++;
         }
     }
 };
