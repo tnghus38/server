@@ -36,12 +36,17 @@ void Recv_check(json j)
 		if (j["InputPlayer"].get<int>() != 5)
 		{
 			game[j["InputPlayer"].get<int>()]->ReadyGame();
-			p_stat = 1;
+		
 		}
 		break;
 	case MsgCode::PreesKey_Start:
-		for(int i=0;i<4;i++)
-			game[i]->StartGame();
+		for (int i = 0; i < 4; i++)
+		{
+			if(i<j["Roomcount"].get<int>())
+				game[i]->StartGame();
+			else 
+				game[i]->EndGame();
+		}
 		break;
 	default:
 		break;
@@ -49,7 +54,6 @@ void Recv_check(json j)
 }
 void main() {
 	myIndex = 5;
-	p_stat = 0;
 	json j_buffer;
 	system("mode con:cols=156 lines=30");
 	Network net;
@@ -62,9 +66,17 @@ void main() {
 		game[i] = new Game(i);
 		game[i]->DrawBackground();
 	}
+
+	//본인 인덱스 번호 받아오기위한코드 
+	j_buffer["sendcode"] = MsgCode::PreesKey;
+	j_buffer["Pindex"] = myIndex;
+	j_buffer["InputPlayer"] = myIndex;
+	j_buffer["Roomcount"] = 0;
+	strcpy_s(buf, j_buffer.dump().c_str());
+	net.Send(buf, strlen(buf));
     while (true) {
         clock_t now = clock();
-
+		
         if (_kbhit()) {
             int nInput = _getch();
 			//보냄 
@@ -82,12 +94,14 @@ void main() {
 			}
 			else if (nInput == 32 || nInput == 48) {
 				//받음
-
-				if (p_stat ==0)
+				if (game[myIndex]->GetState() == PlayerState::UnReady)
+				{
 					j_buffer["sendcode"] = MsgCode::PreesKey_Ready;
-				else 
+				}
+				else
+				{
 					j_buffer["sendcode"] = MsgCode::PreesKey_tick;
-				
+				}
 				j_buffer["KeyNumber"] = nInput;
 				j_buffer["Pindex"] = myIndex;
 				j_buffer["InputPlayer"] = myIndex;
@@ -105,7 +119,7 @@ void main() {
 			game[i]->DrawBoard();
 
 
-			if (now - tick < game[i]->time)
+			if (now - tick < 500)
 			{
 			}
 			else {

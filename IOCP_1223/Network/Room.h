@@ -16,6 +16,7 @@ class Room {
     /// <summary> 룸 아이디 </summary>
     int id;
 	int count = 0;
+	int ready_count = 0;
     /// <summary> 클라이언트 추가  : 5 = 실패</summary>
     inline int AddClinet(shared_ptr<Client> client) {
         for (auto& i : Clients) {
@@ -41,19 +42,7 @@ class Room {
 
         return --count;
     }
-	inline int PlayerIndexCheck() {
-		int n=0;
-		for (auto& i : Clients) {
-			if (i == nullptr&&n==0)
-			{
-				return n;
-			}
-			if (i->ID == n)
-				n++;
-		}
-
-		return n;
-	}
+	
   private:
     /// <summary> 클라이언트 카운트 </summary>
   
@@ -65,7 +54,7 @@ class Room {
     inline void Recv(SOCKETINFO* socketinfoRecv) {
 		
 		WSABUF _buf = socketinfoRecv->dataBuffer;
-
+		
 	
         Send(_buf);
 		
@@ -75,24 +64,25 @@ class Room {
     /// <summary> 쓰기 처리용 </summary>
     inline void Send(WSABUF& sendbuffer) {
 		int n = 0;
-		int ready_count=0;
 		char ms[MAX_BUFFER];
 		json s = json::parse(sendbuffer.buf);
+		if (s["sendcode"] == MsgCode::PreesKey_Ready)
+		{
+			ready_count++;
+			if (count == ready_count)
+			{
+				s["sendcode"] = MsgCode::PreesKey_Start;
+				s["Roomcount"] = count;
+				printf("dd%d\n", count);
+			}
+		}
+		
         for (auto& i : Clients) {
             if (i != nullptr) {
 				
 				
 				s["Pindex"] = n++;
-				if (s["sendcode"] == MsgCode::PreesKey_Ready)
-
-				{
-					ready_count++;
-
-					if (ready_count == n)//입장수와 레디한사람수가같으면
-					{
-						s["sendcode"] = MsgCode::PreesKey_Start;
-					}
-				}
+				
 
 				strcpy_s(ms, s.dump().c_str());
 				sendbuffer.buf = ms;

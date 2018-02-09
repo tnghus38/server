@@ -72,10 +72,11 @@ class Game {
 	Game(int n);
     ~Game();
 
-
+	PlayerState GetState();
 	//현재 블록이 없으면다음 블록을 넣어주고 다음 블록 생성 
     void CurrentBlockCheck();
 
+	void EndGame();
 	void StartGame();
 	void ReadyGame();
 	//실시간으로 떨어지게함 

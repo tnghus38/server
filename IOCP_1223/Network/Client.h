@@ -46,9 +46,9 @@ struct SOCKETINFO {
 
 class Client : public std::enable_shared_from_this<Client> {
   public:
-    int ID;
+    int ID=5;
 	int roomID = 0;
-    string name;
+	
     inline Client(SOCKET socket) {
         this->socket = socket;
 
