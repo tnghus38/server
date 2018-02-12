@@ -3,9 +3,8 @@
 #include <random>
 #include <chrono>
 #include "Board.h"
-#include "Block.h"
 #include "DrawString.h"
-#include "Util.h"
+
 enum class eKey {
 	SpaceBar = 32,
 	LEFT = 75,
@@ -30,7 +29,6 @@ class Game {
 	int GameScore;
 	//ÄÞº¸ 
 	int Combo;
-	
 	//µî¼ö
 	int Rank;
 

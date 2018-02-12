@@ -8,7 +8,7 @@ void Game::Setup() {
     SetCursor(false);
     CreateNextMino();
     CurrentBlockCheck();
-
+	
 }
 
 void Game::InitbackGround() {
@@ -438,9 +438,9 @@ void Game::PreesKey(int key) {
 				NextMino->y = 0;
 			}
 			else {
-				int minonum = CurrentMino->minoNumber;
+				/*int minonum = CurrentMino->minoNumber;
 				CurrentMino = NextMino;
-				CreateNextMino(minonum);
+				CreateNextMino(minonum);*/
 			}
 
 		}

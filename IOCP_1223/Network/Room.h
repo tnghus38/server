@@ -73,7 +73,7 @@ class Room {
 			{
 				s["sendcode"] = MsgCode::PreesKey_Start;
 				s["Roomcount"] = count;
-				printf("dd%d\n", count);
+				count = 5;
 			}
 		}
 		
