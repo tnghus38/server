@@ -23,7 +23,7 @@
 #include <cmath>
 #include "camera.h"
 
-const float Camera::DEFAULT_ROTATION_SPEED = 0.3f;
+const float Camera::DEFAULT_ROTATION_SPEED = 0.1f;
 const float Camera::DEFAULT_FOVX = 90.0f;
 const float Camera::DEFAULT_ZNEAR = 0.1f;
 const float Camera::DEFAULT_ZFAR = 1000.0f;
@@ -44,7 +44,7 @@ Camera::Camera()
     m_znear = DEFAULT_ZNEAR;
     m_zfar = DEFAULT_ZFAR;
     
-    m_eye = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+    m_eye = D3DXVECTOR3(0.0f, 1.0f, -0.0f);
     m_xAxis = D3DXVECTOR3(1.0f, 0.0f, 0.0f);
     m_yAxis = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
     m_zAxis = D3DXVECTOR3(0.0f, 0.0f, 1.0f);

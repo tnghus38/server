@@ -1,16 +1,24 @@
 #include "D3DRenderObject.h"
 
-D3DRenderObject::D3DRenderObject(LPDIRECT3DDEVICE9 _device)
+D3DRenderObject::D3DRenderObject(LPDIRECT3DDEVICE9 device, DWORD fvf)
 {
-	device = _device;
-}
+	_device = device;
+	_FVF = fvf;
 
+	transform.renderObject = this;
+}
 
 D3DRenderObject::~D3DRenderObject()
 {
 }
 
-void D3DRenderObject::SetEffect(LPD3DXEFFECT _effect)
+void D3DRenderObject::SetShader(D3DShaderEffect* effect)
 {
-	effect = _effect;
+	_shaderEffect = effect;
+}
+
+HRESULT D3DRenderObject::UpdateFrame(float fElapsedTime)
+{
+	transform.UpdateFrame(fElapsedTime);
+	return S_OK;
 }

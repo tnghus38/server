@@ -1,19 +1,30 @@
+#include <vector>
 #include "D3DFramework.h"
 #include "Camera.h"
+#include "input.h"
 
 D3DFramework* D3DFramework::instance = NULL;
 
 D3DFramework::D3DFramework()
 {
+	shaderFileNames.push_back(TEXT("hlsl.fx"));
 }
 
 D3DFramework::~D3DFramework()
 {
+	Release();
+}
+
+void D3DFramework::ToggleFullScreen()
+{
+	isFullScreen = !isFullScreen;
+
+	ResetDevice();
 }
 
 bool D3DFramework::isDeviceValid()
 {
-	HRESULT hr = pD3DDevice->TestCooperativeLevel();
+	HRESULT hr = pD3DDevice9->TestCooperativeLevel();
 
 	if (FAILED(hr))
 	{
@@ -26,30 +37,405 @@ bool D3DFramework::isDeviceValid()
 
 bool D3DFramework::ResetDevice()
 {
+	// Device Reset 
+
+	static DWORD savedExStyle;
+	static DWORD savedStyle;
+	static RECT rcSaved;
+
+	if (isFullScreen)
+	{
+		// Moving to full screen mode.
+
+		savedExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+		savedStyle = GetWindowLong(hWnd, GWL_STYLE);
+		GetWindowRect(hWnd, &rcSaved);
+
+		SetWindowLong(hWnd, GWL_EXSTYLE, 0);
+		SetWindowLong(hWnd, GWL_STYLE, WS_POPUP);
+		SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0,
+			SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+
+		windowWidth = GetSystemMetrics(SM_CXSCREEN);
+		windowHeight = GetSystemMetrics(SM_CYSCREEN);
+
+		SetWindowPos(hWnd, HWND_TOPMOST, 0, 0,
+			windowWidth, windowHeight, SWP_SHOWWINDOW);
+
+		// Update presentation parameters.
+
+		d3dpp.Windowed = FALSE;
+		d3dpp.BackBufferWidth = windowWidth;
+		d3dpp.BackBufferHeight = windowHeight;
+
+		if (enableVerticalSync)
+		{
+			d3dpp.FullScreen_RefreshRateInHz = D3DPRESENT_INTERVAL_DEFAULT;
+			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+		}
+		else
+		{
+			d3dpp.FullScreen_RefreshRateInHz = D3DPRESENT_INTERVAL_IMMEDIATE;
+			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+		}
+	}
+	else
+	{
+		// Moving back to windowed mode.
+
+		SetWindowLong(hWnd, GWL_EXSTYLE, savedExStyle);
+		SetWindowLong(hWnd, GWL_STYLE, savedStyle);
+		SetWindowPos(hWnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+			SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+
+		windowWidth = rcSaved.right - rcSaved.left;
+		windowHeight = rcSaved.bottom - rcSaved.top;
+
+		SetWindowPos(hWnd, HWND_NOTOPMOST, rcSaved.left, rcSaved.top,
+			windowWidth, windowHeight, SWP_SHOWWINDOW);
+
+		// Update presentation parameters.
+
+		d3dpp.Windowed = TRUE;
+		d3dpp.BackBufferWidth = windowWidth;
+		d3dpp.BackBufferHeight = windowHeight;
+		d3dpp.FullScreen_RefreshRateInHz = 0;
+
+		if (enableVerticalSync)
+			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+		else
+			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+	}
+
+	// Viewport has changed in size. Rebuild the camera's projection matrix.
+	camera->perspective(CAMERA_FOVX,
+		static_cast<float>(windowWidth) / static_cast<float>(windowHeight),
+		CAMERA_ZNEAR, CAMERA_ZFAR);
+
 	// Shader Effect OnLostDevice()
 
 	// Font OnLostDevice()
 
 	// Device Reset()
-	if (FAILED(pD3DDevice->Reset(&d3dpp)))
+	if (FAILED(pD3DDevice9->Reset(&d3dpp)))
 		return false;
 
 	// Font OnResetDevice()
 
 	// Shader Effect OnResetDevice()
 
+	// RenderObjects OnResetDevice();
+	for (list<D3DRenderObject*>::iterator iter = renderObjects.begin(); iter != renderObjects.end(); iter++)
+	{
+		(*iter)->Reset();
+	}
+
 	return true;
 }
 
-HRESULT D3DFramework::Init(HWND _hWnd, LPCTSTR lpszClass)
+bool Comp(const D3DRenderObject* pObject1, const D3DRenderObject* pObject2)
+{
+	if (pObject1->renderQueue < pObject2->renderQueue)
+	{
+		return TRUE;
+	}
+	else
+	{
+		if (pObject1->renderQueue != (int)(RenderObject::AlphaTest) && pObject1->renderQueue != (int)(RenderObject::Transparent))
+			return FALSE;
+
+		if (pObject1->renderQueue == pObject2->renderQueue)
+
+		{
+			D3DXVECTOR3 eyePt = D3DFramework::Instance()->GetCamera()->getPosition();
+			D3DXVECTOR3 vectorToEyePt1 = pObject1->transform.worldPosition - eyePt;
+			float distance1 = D3DXVec3Length(&vectorToEyePt1);
+			D3DXVECTOR3 vectorToEyePt2 = pObject2->transform.worldPosition - eyePt;
+			float distance2 = D3DXVec3Length(&vectorToEyePt2);
+
+			if (distance1 > distance2)
+				return TRUE;
+			else
+				return FALSE;
+		}
+	}
+	return false;
+}
+
+void D3DFramework::SetupRenderOrder()
+{
+	renderObjects.sort(Comp);
+}
+
+HRESULT D3DFramework::CreateShaderEffects()
+{
+	HRESULT hr;
+
+	shaders.clear();
+
+	for (unsigned int i = 0; i < shaderFileNames.size(); ++i)
+	{
+		wstring filename(shaderFileNames[i]);
+		int subIndex = filename.find_last_of(TEXT(".") - 1);
+		wstring shaderName = filename.substr(0, subIndex);
+
+		D3DShaderEffect* shader = new D3DShaderEffect(pD3DDevice9, (LPCWSTR)filename.c_str());
+		if (FAILED(hr = shader->Init()))
+			return E_FAIL;
+
+		shaders.insert(pair<LPCWSTR, D3DShaderEffect*>(shaderName.c_str(), shader));
+	}
+
+	return S_OK;
+}
+
+HRESULT D3DFramework::AddRenderObject(D3DRenderObject * renderObj)
+{
+	renderObjects.push_back(renderObj);
+	return S_OK;
+}
+
+void D3DFramework::ProcessUserInput()
+{
+	Keyboard &keyboard = Keyboard::instance();
+	Mouse &mouse = Mouse::instance();
+
+	if (keyboard.keyPressed(Keyboard::KEY_ESCAPE))
+		PostMessage(hWnd, WM_CLOSE, 0, 0);
+
+	if (keyboard.keyPressed(Keyboard::KEY_ADD) || keyboard.keyPressed(Keyboard::KEY_NUMPAD_ADD))
+	{
+		camera->setRotationSpeed(camera->getRotationSpeed() + 0.01f);
+
+		if (camera->getRotationSpeed() > 1.0f)
+			camera->setRotationSpeed(1.0f);
+	}
+
+	if (keyboard.keyPressed(Keyboard::KEY_MINUS) || keyboard.keyPressed(Keyboard::KEY_NUMPAD_MINUS))
+	{
+		camera->setRotationSpeed(camera->getRotationSpeed() - 0.01f);
+
+		if (camera->getRotationSpeed() <= 0.0f)
+			camera->setRotationSpeed(0.01f);
+	}
+
+	if (keyboard.keyPressed(Keyboard::KEY_PERIOD))
+	{
+		mouse.setWeightModifier(mouse.weightModifier() + 0.1f);
+
+		if (mouse.weightModifier() > 1.0f)
+			mouse.setWeightModifier(1.0f);
+	}
+
+	if (keyboard.keyPressed(Keyboard::KEY_COMMA))
+	{
+		mouse.setWeightModifier(mouse.weightModifier() - 0.1f);
+
+		if (mouse.weightModifier() < 0.0f)
+			mouse.setWeightModifier(0.0f);
+	}
+
+	if (keyboard.keyPressed(Keyboard::KEY_M))
+		mouse.smoothMouse(!mouse.isMouseSmoothing());
+
+	if (keyboard.keyDown(Keyboard::KEY_LALT) || keyboard.keyDown(Keyboard::KEY_RALT))
+	{
+		if (keyboard.keyPressed(Keyboard::KEY_ENTER))
+			ToggleFullScreen();
+	}
+
+	if (keyboard.keyPressed(Keyboard::KEY_SPACE))
+	{
+		if (camera->getBehavior() == Camera::CAMERA_BEHAVIOR_FIRST_PERSON)
+		{
+			camera->setBehavior(Camera::CAMERA_BEHAVIOR_FLIGHT);
+		}
+		else
+		{
+			const D3DXVECTOR3 &cameraPos = camera->getPosition();
+
+			camera->setBehavior(Camera::CAMERA_BEHAVIOR_FIRST_PERSON);
+			camera->setPosition(cameraPos.x, CAMERA_POS.y, cameraPos.z);
+		}
+	}
+}
+
+void D3DFramework::GetCameraMoveDirection(D3DXVECTOR3 & direction)
+{
+	static bool moveForwardsPressed = false;
+	static bool moveBackwardsPressed = false;
+	static bool moveRightPressed = false;
+	static bool moveLeftPressed = false;
+	static bool moveUpPressed = false;
+	static bool moveDownPressed = false;
+
+	D3DXVECTOR3 velocity = camera->getCurrentVelocity();
+	Keyboard &keyboard = Keyboard::instance();
+
+	direction.x = direction.y = direction.z = 0.0f;
+
+	if (keyboard.keyDown(Keyboard::KEY_UP) || keyboard.keyDown(Keyboard::KEY_W))
+	{
+		if (!moveForwardsPressed)
+		{
+			moveForwardsPressed = true;
+			camera->setCurrentVelocity(velocity.x, velocity.y, 0.0f);
+		}
+
+		direction.z += 1.0f;
+	}
+	else
+	{
+		moveForwardsPressed = false;
+	}
+
+	if (keyboard.keyDown(Keyboard::KEY_DOWN) || keyboard.keyDown(Keyboard::KEY_S))
+	{
+		if (!moveBackwardsPressed)
+		{
+			moveBackwardsPressed = true;
+			camera->setCurrentVelocity(velocity.x, velocity.y, 0.0f);
+		}
+
+		direction.z -= 1.0f;
+	}
+	else
+	{
+		moveBackwardsPressed = false;
+	}
+
+	if (keyboard.keyDown(Keyboard::KEY_RIGHT) || keyboard.keyDown(Keyboard::KEY_D))
+	{
+		if (!moveRightPressed)
+		{
+			moveRightPressed = true;
+			camera->setCurrentVelocity(0.0f, velocity.y, velocity.z);
+		}
+
+		direction.x += 1.0f;
+	}
+	else
+	{
+		moveRightPressed = false;
+	}
+
+	if (keyboard.keyDown(Keyboard::KEY_LEFT) || keyboard.keyDown(Keyboard::KEY_A))
+	{
+		if (!moveLeftPressed)
+		{
+			moveLeftPressed = true;
+			camera->setCurrentVelocity(0.0f, velocity.y, velocity.z);
+		}
+
+		direction.x -= 1.0f;
+	}
+	else
+	{
+		moveLeftPressed = false;
+	}
+
+	if (keyboard.keyDown(Keyboard::KEY_PAGEUP))
+	{
+		if (!moveUpPressed)
+		{
+			moveUpPressed = true;
+			camera->setCurrentVelocity(velocity.x, 0.0f, velocity.z);
+		}
+
+		direction.y += 1.0f;
+	}
+	else
+	{
+		moveUpPressed = false;
+	}
+
+	if (keyboard.keyDown(Keyboard::KEY_PAGEDOWN))
+	{
+		if (!moveDownPressed)
+		{
+			moveDownPressed = true;
+			camera->setCurrentVelocity(velocity.x, 0.0f, velocity.z);
+		}
+
+		direction.y -= 1.0f;
+	}
+	else
+	{
+		moveDownPressed = false;
+	}
+}
+
+void D3DFramework::UpdateCamera(float fElapsedTime)
+{
+	static bool rollLeftPressed = false;
+	static bool rollRightPressed = false;
+
+	float heading = 0.0f;
+	float pitch = 0.0f;
+	float roll = 0.0f;
+	float rotationSpeed = camera->getRotationSpeed();
+	D3DXVECTOR3 direction;
+	Mouse &mouse = Mouse::instance();
+
+	GetCameraMoveDirection(direction);
+
+	switch (camera->getBehavior())
+	{
+	case Camera::CAMERA_BEHAVIOR_FIRST_PERSON:
+		pitch = mouse.yPosRelative() * rotationSpeed;
+		heading = mouse.xPosRelative() * rotationSpeed;
+
+		if (Keyboard::instance().keyDown(Keyboard::KEY_Q))
+		{
+			if (!rollLeftPressed)
+			{
+				rollLeftPressed = true;
+			}
+		}
+		else
+		{
+			rollLeftPressed = false;
+		}
+
+		if (Keyboard::instance().keyDown(Keyboard::KEY_E))
+		{
+			if (!rollRightPressed)
+			{
+				rollRightPressed = true;
+			}
+		}
+		else
+		{
+			rollRightPressed = false;
+		}
+		camera->rotate(heading, pitch, 0.0f, rollLeftPressed, rollRightPressed);
+		break;
+
+	case Camera::CAMERA_BEHAVIOR_FLIGHT:
+		heading = direction.x * CAMERA_SPEED_FLIGHT_YAW * fElapsedTime;
+		pitch = -mouse.yPosRelative() * rotationSpeed;
+		roll = mouse.xPosRelative() * rotationSpeed;
+
+		camera->rotate(heading, pitch, roll);
+		direction.x = 0.0f; // ignore yaw motion when updating camera velocity
+		break;
+	}
+
+	camera->updatePosition(direction, fElapsedTime);
+	
+	pD3DDevice9->SetTransform(D3DTS_VIEW, &camera->getViewMatrix());
+	pD3DDevice9->SetTransform(D3DTS_PROJECTION, &camera->getProjectionMatrix());
+}
+
+HRESULT D3DFramework::Init(HWND _hWnd, LPCTSTR lpszClass, int screenWidth, int screenHeight)
 {
 	hWnd = _hWnd;
 	strWindowTitle = lpszClass;
+	windowWidth = screenWidth;
+	windowHeight = screenHeight;
 
 	// Direct 3D 사용
-	pD3D9 = Direct3DCreate9(D3D_SDK_VERSION);
-	if (pD3D9 == NULL)
-		return DisplayErrorMsg(D3DAPPERR_NODIRECT3D, MSGERR_APPMUSTEXIT);
+	if (NULL == (pD3D9 = Direct3DCreate9(D3D_SDK_VERSION))) return E_FAIL;
 
 	HRESULT hr = 0;
 
@@ -66,9 +452,9 @@ HRESULT D3DFramework::Init(HWND _hWnd, LPCTSTR lpszClass)
 	}
 
 	ZeroMemory(&d3dpp, sizeof(D3DPRESENT_PARAMETERS));
-	d3dpp.BackBufferWidth = 0;
-	d3dpp.BackBufferHeight = 0;
-	d3dpp.BackBufferFormat = d3ddm.Format;
+	d3dpp.BackBufferWidth = windowWidth;
+	d3dpp.BackBufferHeight = windowHeight;
+	d3dpp.BackBufferFormat = D3DFMT_UNKNOWN;
 	d3dpp.BackBufferCount = 1;
 	d3dpp.hDeviceWindow = hWnd;
 	d3dpp.Windowed = TRUE;
@@ -86,13 +472,12 @@ HRESULT D3DFramework::Init(HWND _hWnd, LPCTSTR lpszClass)
 
 	if (FAILED(hr = pD3D9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
 		D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE,
-		&d3dpp, &pD3DDevice)))
+		&d3dpp, &pD3DDevice9)))
 	{
 		if (FAILED(hr = pD3D9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
-			D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &pD3DDevice)))
+			D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &pD3DDevice9)))
 		{
-			pD3DDevice->Release();
-			pD3DDevice = 0;
+			SAFE_RELEASE(pD3DDevice9);
 			return DisplayErrorMsg(D3DAPPERR_NULLREFDEVICE, MSGERR_APPMUSTEXIT);
 		}
 	}
@@ -100,7 +485,7 @@ HRESULT D3DFramework::Init(HWND _hWnd, LPCTSTR lpszClass)
 	D3DCAPS9 caps;
 
 	// Prefer anisotropic texture filtering if it's supported.
-	if (SUCCEEDED(pD3DDevice->GetDeviceCaps(&caps)))
+	if (SUCCEEDED(pD3DDevice9->GetDeviceCaps(&caps)))
 	{
 		if (caps.RasterCaps & D3DPRASTERCAPS_ANISOTROPY)
 			maxAnisotrophy = caps.MaxAnisotropy;
@@ -108,48 +493,96 @@ HRESULT D3DFramework::Init(HWND _hWnd, LPCTSTR lpszClass)
 			maxAnisotrophy = 1;
 	}
 
+	// 카메라 생성
 	camera = new Camera();
+
+	// Shader Effect 로드
+	CreateShaderEffects();
+
+	// 보통은 이 부분에서 SceneManager 같은 것을 초기화 시켜야 할것이다.
+	// 일반적인 게임 엔진에서는 이 SceneManager 등록된 Scene을 로드 하여 각각의 RenderObject들을 생성할 것이다
+	// 하지만 일단 우리는 여기서는 아무것도 하지 않는다. 지금은 Main.cpp 에서 각각의 렌더 오브젝트를 세팅하는 것으로 하자.
+
+	// 카메라 초기화
+	camera->perspective(CAMERA_FOVX,
+		static_cast<float>(GetSystemMetrics(SM_CXSCREEN)) / static_cast<float>(GetSystemMetrics(SM_CYSCREEN)),
+		CAMERA_ZNEAR, CAMERA_ZFAR);
+
+	camera->setBehavior(Camera::CAMERA_BEHAVIOR_FIRST_PERSON);
+	camera->setPosition(CAMERA_POS);
+	camera->setAcceleration(CAMERA_ACCELERATION);
+	camera->setVelocity(CAMERA_VELOCITY);
 
 	return S_OK;
 }
 
 HRESULT D3DFramework::UpdateFrame(float fElapsedTime)
 {
+	SetupRenderOrder();
+
+	Keyboard::instance().update();
+	Mouse::instance().update();
+
+	ProcessUserInput();
+
+	UpdateCamera(fElapsedTime);
+
 	// 변경되는 데이터들을 처리합니다.
+	UpdateRenderObjects(fElapsedTime);
+
+	return S_OK;
+}
+
+HRESULT D3DFramework::UpdateRenderObjects(float fElapsedTime)
+{
+	for (list<D3DRenderObject*>::iterator iter = renderObjects.begin(); iter != renderObjects.end(); ++iter)
+	{
+		if (FAILED((*iter)->UpdateFrame(fElapsedTime)))
+			return E_FAIL;
+	}
+
 	return S_OK;
 }
 
 HRESULT D3DFramework::Render()
 {
-	
-		// 이 공간에 모든 렌더링 오브젝트를 Draw합니다.
-		D3DPrimitive* a= new D3DPrimitive(pD3DDevice, D3DPrimitive::PrimitiveType::tiger);
-		if (SUCCEEDED(a->Init()))
-		{
-			// Show the window
-			ShowWindow(hWnd, SW_SHOWDEFAULT);
-			UpdateWindow(hWnd);
+	pD3DDevice9->Clear(0, 0, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(100,100,255), 1.0f, 0);
 
-			// Enter the message loop
-			MSG msg;
-			ZeroMemory(&msg, sizeof(msg));
-			while (msg.message != WM_QUIT)
-			{
-				if (PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
-				{
-					TranslateMessage(&msg);
-					DispatchMessage(&msg);
-				}
-				else
-					a->Render();
-			}
-		}
-		
+	if (FAILED(pD3DDevice9->BeginScene()))
+	{
+		return E_FAIL;
+	}
+	else
+	{
+		// 이 공간에 모든 렌더링 오브젝트를 Draw합니다.
+		DrawRenderObjects();
+
+		pD3DDevice9->EndScene();
+		pD3DDevice9->Present(0, 0, 0, 0);
 		return S_OK;
+	}
+}
+
+HRESULT D3DFramework::DrawRenderObjects()
+{
+	for (list<D3DRenderObject*>::iterator iter = renderObjects.begin(); iter != renderObjects.end(); ++iter)
+	{
+
+		(*iter)->Render();
+	}
+	return S_OK;
 }
 
 HRESULT D3DFramework::Release()
 {
+	for (list<D3DRenderObject*>::iterator iter = renderObjects.begin(); iter != renderObjects.end(); ++iter)
+	{
+		SAFE_RELEASE(*iter);
+	}
+
+	SAFE_RELEASE(pD3DDevice9);
+	SAFE_RELEASE(pD3D9);
+
 	return S_OK;
 }
 

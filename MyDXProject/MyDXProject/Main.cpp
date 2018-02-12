@@ -1,5 +1,7 @@
 #include <windows.h>
 #include "D3DFramework.h"
+#include "D3DPrimitive.h"
+#include "input.h"
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 HINSTANCE g_hInst;
@@ -11,6 +13,54 @@ bool hasFocus;
 bool isFullScreen;
 
 float GetElapsedTimeInSeconds();
+
+D3DPrimitive* triangle;
+D3DPrimitive* triangleChild;
+D3DPrimitive* quad;
+D3DPrimitive* cube;
+void InitD3DRenderObjects()
+{
+	// 삼각형 1 등록
+	DWORD primitiveFVF = D3DFVF_XYZ | D3DFVF_DIFFUSE;
+	triangle = new D3DPrimitive(
+		D3DFramework::Instance()->GetD3DDevice(), 
+		primitiveFVF, 
+		D3DPrimitive::PrimitiveType::Triangle);
+	D3DFramework::Instance()->AddRenderObject(triangle);
+	triangle->Init();
+	triangle->renderQueue = RenderObject::Transparent;
+
+	// 삼각형 2 등록
+	triangleChild = new D3DPrimitive(
+		D3DFramework::Instance()->GetD3DDevice(),
+		primitiveFVF,
+		D3DPrimitive::PrimitiveType::Mesh);
+	D3DFramework::Instance()->AddRenderObject(triangleChild);
+	triangleChild->Init();
+	triangleChild->renderQueue = RenderObject::Transparent;
+	//쿼드
+	quad = new D3DPrimitive(
+		D3DFramework::Instance()->GetD3DDevice(),
+		primitiveFVF,
+		D3DPrimitive::PrimitiveType::Quad);
+	D3DFramework::Instance()->AddRenderObject(quad);
+	quad->Init();
+	quad->renderQueue = RenderObject::Transparent;
+
+	triangleChild->transform.AddChild(&quad->transform);
+	triangleChild->transform.Translate(-2.5f, 1.0f, 0.0f);
+	quad->transform.Translate(1.0f, 0.0f, 2.0f);
+	//큐브
+	cube = new D3DPrimitive(
+		D3DFramework::Instance()->GetD3DDevice(),
+		primitiveFVF,
+		D3DPrimitive::PrimitiveType::Cube);
+	D3DFramework::Instance()->AddRenderObject(cube);
+	cube->Init();
+	cube->renderQueue = RenderObject::Transparent;
+
+	cube->transform.Translate(3.0f, 1.0f, 2.0f);
+}
 
 int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	LPSTR lpszCmdParam, int nCmdShow )
@@ -36,21 +86,40 @@ int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	RegisterClass(&WndClass);
 
 	DWORD wndExStyle = WS_EX_OVERLAPPEDWINDOW;
-	DWORD wndStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU |
-		WS_MINIMIZEBOX | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+	DWORD wndStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME |
+		WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_VISIBLE;
 
 	hWnd = CreateWindowEx(wndExStyle, WndClass.lpszClassName, lpszClass,
-		wndStyle, CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, NULL, NULL, hInstance, NULL);
+		wndStyle, 0, 0, 0, 0, 0, 0, WndClass.hInstance, 0);
 
 	if (hWnd == NULL) {
 		MessageBox(NULL, TEXT("can't create window"), TEXT("error"), MB_ICONERROR | MB_OK);
 		return -1;
 	}
 
-	if (FAILED(D3DFramework::Instance()->Init(hWnd, lpszClass)))
+	int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+	int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+	int halfScreenWidth = screenWidth / 2;
+	int halfScreenHeight = screenHeight / 2;
+	int left = (screenWidth - halfScreenWidth) / 2;
+	int top = (screenHeight - halfScreenHeight) / 2;
+	RECT rc = { 0 };
+
+	SetRect(&rc, left, top, left + halfScreenWidth, top + halfScreenHeight);
+	AdjustWindowRectEx(&rc, wndStyle, FALSE, wndExStyle);
+	MoveWindow(hWnd, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, TRUE);
+
+	GetClientRect(hWnd, &rc);
+	windowWidth = rc.right - rc.left;
+	windowHeight = rc.bottom - rc.top;
+
+	if (FAILED(D3DFramework::Instance()->Init(hWnd, lpszClass, windowWidth, windowHeight)))
 	{
 		return -1;
 	}
+
+	// 렌더 오브젝트를 초기화 한다. 
+	InitD3DRenderObjects();
 
 	ShowWindow(hWnd, nCmdShow);
 
@@ -70,7 +139,12 @@ int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 		if (hasFocus)
 		{
-			D3DFramework::Instance()->UpdateFrame(GetElapsedTimeInSeconds());
+			float deltaTime = GetElapsedTimeInSeconds();
+
+			triangle->transform.Rotate(0.0f, deltaTime * 50.0f, 0.0f);
+			triangleChild->transform.Rotate(0.0f, deltaTime * 50.0f, 0.0f);
+			cube ->transform.Rotate(deltaTime * 50.0f, deltaTime * 50.0f, deltaTime * 50.0f);
+			D3DFramework::Instance()->UpdateFrame(deltaTime);
 
 			if (D3DFramework::Instance()->isDeviceValid())
 				D3DFramework::Instance()->Render();
@@ -86,6 +160,8 @@ int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 {
+	Keyboard::instance().handleMsg(hWnd, iMessage, wParam, lParam);
+
 	switch (iMessage)
 	{
 	case WM_ACTIVATE:
@@ -100,7 +176,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 			break;
 
 		case WA_INACTIVE:
-			if (isFullScreen)
+			if (D3DFramework::Instance()->isFullScreen)
 				ShowWindow(hWnd, SW_MINIMIZE);
 			hasFocus = false;
 			break;
@@ -112,8 +188,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		return 0;
 
 	case WM_SIZE:
-		windowWidth = static_cast<int>(LOWORD(lParam));
-		windowHeight = static_cast<int>(HIWORD(lParam));
+		D3DFramework::Instance()->windowWidth = windowWidth = static_cast<int>(LOWORD(lParam));
+		D3DFramework::Instance()->windowHeight = windowHeight = static_cast<int>(HIWORD(lParam));
 		break;
 
 	default:

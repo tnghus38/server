@@ -1,8 +1,9 @@
 #pragma once
 #include <vector>
 #include <d3dx9.h>
-
 using namespace std;
+
+class D3DRenderObject;
 
 class Transform
 {
@@ -14,25 +15,28 @@ protected:
 
 	// Matrices
 	D3DXMATRIX					_localMat;
-	D3DXMATRIX					_worldMat;				// 최종 계산된 WorldMatrix
-														// this->worldMat = _parent->worldMat * this->_localMat
 
 	// Child Object Array
-	vector<Transform*>		_childTransform;		// 자식 RenderObject들
+	vector<Transform*>			_childTransforms;		// 자식 RenderObject들
 
 public:													
 	// Scale
-	D3DXVECTOR3					_localScale;			// Scale은 로컬만 있으면 된다.
+	D3DXVECTOR3					localScale;			// Scale은 로컬만 있으면 된다.
 
 	// Rotation
-	D3DXQUATERNION				_localRotation;			// 부모 RenderObject 기준 최종 Rotation
-	D3DXQUATERNION				_worldRotation;			// 원점 기준 Rotation
+	D3DXQUATERNION				localRotation;			// 부모 RenderObject 기준 최종 Rotation
+	D3DXQUATERNION				worldRotation;			// 원점 기준 Rotation
 
 	// Position
-	D3DXVECTOR3					_localPosition;			// 부모 RenderObject 기준 Position
-	D3DXVECTOR3					_worldPosition;			// 원점 기준 Position
+	D3DXVECTOR3					localPosition;			// 부모 RenderObject 기준 Position
+	D3DXVECTOR3					worldPosition;			// 원점 기준 Position
 
-	Transform*				parent;						// 부모 RenderObject
+	D3DXMATRIX					worldMat;				// 최종 계산된 WorldMatrix
+														// this->worldMat = _parent->worldMat * this->_localMat
+
+	Transform*					parent;					// 부모 RenderObject
+
+	D3DRenderObject*			renderObject = NULL;
 
 protected:
 	void UpdateWorldMatrix();
@@ -43,11 +47,13 @@ public:
 	Transform();
 	virtual ~Transform();
 
-	virtual void UpdateFrame();
+	virtual void UpdateFrame(float fElapsedTime);
 
 	void Rotate(float xAngle, float yAngle, float zAngle);
 	void Translate(float xPos, float y, float z);
 	void Scale(float xScale, float yScale, float zScale);
+
+	vector<Transform*> GetChildren() { return _childTransforms; }
 
 	void AddChild(Transform* obj);
 };

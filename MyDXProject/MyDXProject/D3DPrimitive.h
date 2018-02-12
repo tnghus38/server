@@ -10,7 +10,7 @@ public:
 		Quad,
 		Cube,
 		Plane,
-		tiger
+		Mesh
 	};
 
 protected:
@@ -19,29 +19,25 @@ protected:
 	LPDIRECT3DTEXTURE9				pD3DTexture;
 	PrimitiveType					primitiveType;
 	LPDIRECT3DVERTEXDECLARATION9	pDecl;	// 정점선언
-	VOID* vpVertices;
 
 public:
-	D3DPrimitive(LPDIRECT3DDEVICE9 _device, PrimitiveType type);
+	D3DPrimitive(LPDIRECT3DDEVICE9 _device, DWORD _fvf, PrimitiveType type);
 	~D3DPrimitive();
 
 	HRESULT Init();
 	HRESULT Render();
-
+	HRESULT Release();
 
 private:
 	HRESULT SetupTriangle();
 	HRESULT SetupQuad();
 	HRESULT SetupCube();
 	HRESULT SetupPlane();
-	HRESULT SetupTiger();
-	
+	HRESULT SetupMesh();
 
-	DWORD               g_dwNumMaterials = 0L;
-	LPD3DXMESH          g_pMesh = NULL;
-	D3DMATERIAL9*       g_pMeshMaterials = NULL;
-	
-	//렌더오브젝트로 가자
-	LPDIRECT3DTEXTURE9* g_pMeshTextures = NULL;
-	
+	HRESULT DrawTriangle();
+	HRESULT DrawQuad();
+	HRESULT DrawCube();
+	HRESULT DrawPlane();
+	HRESULT DrawMesh();
 };
